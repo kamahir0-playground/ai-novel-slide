@@ -1,0 +1,22 @@
+# Dependencies
+node_modules
+
+# Build outputs
+dist
+.slidev
+
+# Export files
+*.pdf
+*-export.pdf
+*.pptx
+slides-export/
+recordings/
+
+# Environment / Local settings
+*.local
+.env
+.env.*.local
+
+# OS files
+.DS_Store
+Thumbs.db

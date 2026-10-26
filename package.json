@@ -1,0 +1,23 @@
+{
+  "name": "slidev-template",
+  "version": "1.0.0",
+  "private": true,
+  "description": "汎用プレゼンテーション用Slidevテンプレート",
+  "scripts": {
+    "dev": "slidev --open",
+    "build": "slidev build",
+    "export": "slidev export",
+    "export:pdf": "slidev export --format pdf",
+    "export:png": "slidev export --format png",
+    "export:pptx": "node scripts/export_pptx_with_gifs.mjs",
+    "prepare": "git config core.hooksPath .githooks"
+  },
+  "dependencies": {
+    "@slidev/cli": "^53.0.0",
+    "@slidev/theme-default": "^0.25.0"
+  },
+  "devDependencies": {
+    "playwright-chromium": "^1.64.0",
+    "pptxgenjs": "^4.0.1"
+  }
+}
