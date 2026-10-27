@@ -17,13 +17,13 @@ drawings:
   <div class="mb-8 text-slate-400 text-lg tracking-wide">個人制作のワークフローを紹介する技術LT</div>
   <h1 class="text-5xl leading-tight font-bold">小説の原稿をCIで確かめ、<br>EPUBで読むまで</h1>
   <div class="mt-9 text-2xl text-slate-300">Markdown / Pull Request / LLM / GitHub Actions</div>
-  <div class="mt-14 text-base text-slate-400">作業の自動化と、AI校閲で分かった限界</div>
+  <div class="mt-14 text-base text-slate-400">作業の自動化と、AI校閲の検証記録</div>
 </div>
 
 <!--
-趣味でAIエージェントと小説を書いています。
-今日は文章生成のプロンプトより、書いた原稿をどう確認し、読むための形式にするか、という周辺の仕組みを紹介します。
-CI/CDという言葉を使っていますが、読者向けの自動公開ではありません。制作中の原稿を扱う個人用のワークフローです。
+趣味でAIエージェントと小説を書いています。原稿だけでなく、今回のCI/CDのコードもAIにかなり生成させています。
+手で一から組み上げた苦労話ではなく、結果としてリポジトリに何が実装され、どこまで検証できているかを紹介します。
+ここでいう配信は読者向けの自動公開ではありません。制作中の原稿を個人用の端末で読むための同期です。
 -->
 
 ---
@@ -46,6 +46,7 @@ layout: default
     <div class="rounded-xl bg-slate-900/70 border border-slate-700 p-5">
       <div class="text-xl font-semibold mb-2">制作の流れ</div>
       <div class="text-lg text-slate-300 leading-8">人間が方向性を決める → AIが草稿を作る → PRで差分を確認 → 採用するものをマージ</div>
+      <div class="text-sm text-slate-400 mt-3">CI/CDの実装にもAI生成コードを多く使っている。</div>
     </div>
     <div class="rounded-xl bg-slate-900/70 border border-slate-700 p-5">
       <div class="text-xl font-semibold mb-2">確認したいこと</div>
@@ -57,9 +58,9 @@ layout: default
 <div class="mt-7 text-sm text-slate-400">小説の良し悪しをCIで判定することは目的にしていません。</div>
 
 <!--
-本文や設定資料をMarkdownで管理しています。AIとの共同執筆でも、差分が読めることと、前の版に戻れることが便利でした。
-困っていたのは、執筆以外に繰り返し発生する確認作業です。
-書式・整合性・閲覧用の変換は性質が違うので、それぞれ別の方法で扱うことにしました。
+本文や設定資料はMarkdownでGit管理しています。本文や周辺ツールにはAIが生成したものも含まれます。
+Git上では差分と変更履歴を確認できます。周辺の作業として、書式確認、物語の整合性確認、閲覧用ファイルへの変換があります。
+このリポジトリでは、それぞれ別の処理として組み込んでいます。
 -->
 
 ---
@@ -107,13 +108,11 @@ layout: default
   <div>
     <div class="text-lg font-semibold text-emerald-300 mb-4">原稿側の約束</div>
     <div class="rounded-xl border border-slate-700 bg-slate-900/70 p-5">
-      <div class="font-mono text-lg leading-9 text-slate-200">
-        <div># 作品タイトル</div>
-        <div>## 章タイトル</div>
-        <div>### 節タイトル</div>
-        <div class="h-4"></div>
-        <div class="text-slate-400">本文……</div>
-      </div>
+      <pre class="!bg-transparent !m-0 text-lg leading-9"><code># 作品タイトル
+## 章タイトル
+### 節タイトル
+
+本文……</code></pre>
     </div>
     <div class="mt-5 text-base text-slate-300 leading-8">見出し階層、章番号の扱い、場面転換の記法などを検査する。</div>
   </div>
@@ -191,16 +190,16 @@ layout: default
 </div>
 
 <!--
-校閲CIを作るうえで難しかったのは、誤検出の扱いでした。
-件数が減っていても、時間が経過して処理が進んだだけかもしれません。人物の発言が違っていても、意図された認識差かもしれません。
-そのため、違和感を列挙する前に、正常な解釈がないか検討するようにしています。ただし、この方法だけで誤検出がなくなるわけではありません。
+この校閲器には、誤検出を抑えるための条件が入っています。
+件数が減っていても、時間が経過して処理が進んだだけかもしれません。人物の発言が違っていても、作中で意図された認識差かもしれません。
+そこでプロンプトでは、矛盾を報告する前に自然な別解釈を探すよう指定しています。この指定で誤検出がなくなるという意味ではありません。
 -->
 
 ---
 layout: default
 ---
 
-# 評価では、テストケースの作り方にも悩んだ
+# 評価ケースの条件にも曖昧さがあった
 
 <div class="grid grid-cols-2 gap-6 mt-8">
   <div class="rounded-xl border border-slate-700 bg-slate-900/65 p-5">
@@ -220,9 +219,9 @@ layout: default
 <div class="mt-5 text-xs text-slate-400">出典：tools/novel_ci/eval_results/pr97_run3_summary.json、pr97_run4_ground_truth.json</div>
 
 <!--
-自作したテストで、当初は章間のページ数の食い違いを検出できませんでした。
-ただし元のケースには「全体8ページのうち冒頭3ページ」という自然な読み方があり、単純に検出漏れとも断定できませんでした。
-そこで、同じ最終稿の全体ページ数が食い違うという、曖昧さのないケースに直しています。これはアルゴリズムの改善結果というより、評価設計から得た教訓です。
+評価用のRun 3では、章間のページ数の食い違いが検出されませんでした。
+ただし元のケースには「全体8ページのうち冒頭3ページ」という自然な読み方があり、検出漏れとは断定できません。
+Run 4では、同じ最終稿の全体ページ数が食い違うケースに変更しています。ここで変えたのは主に評価ケースの条件であり、この2回だけで検出性能の改善を示すことはできません。
 -->
 
 ---
@@ -415,7 +414,7 @@ title: まとめ
 </div>
 
 <!--
-小説制作にCI/CDの道具を持ち込むと、書式検査やEPUB生成・同期のような定型作業は扱いやすくなりました。
-LLM校閲は可能性がありますが、何を矛盾とみなすかの定義も含めて、まだ検証が必要です。
-仕組みが代わりに書いてくれるわけではありませんが、原稿を確認するための手間を一部減らせています。以上です。
+このリポジトリでは、書式検査、EPUB生成、Driveへの同期をGitHub Actionsに組み込んでいます。
+AI校閲には7ケースの評価ログがありますが、未知の作品に対する精度は未測定です。
+本文も実装もAIを多用しており、ここで紹介したいのは作り手の苦労ではなく、現状の仕組みと確認できた動作です。以上です。
 -->
