@@ -1,10 +1,10 @@
 ---
 theme: default
 colorSchema: dark
-title: 小説の原稿をCIで確かめ、EPUBで読むまで
+title: 小説を読んでいたらCI/CDを構築していた
 info: |
-  小説制作にGitHub Actionsを使った個人開発の事例。
-  Markdown Lint、LLMによる校閲支援、EPUB生成、Google Drive同期について、実装と検証の範囲を分けて紹介する。
+  小説のMarkdown原稿をGitで管理し、GitHub Actionsで書式検査・縦書きEPUB生成・Google Drive同期を行う個人制作の技術LT。
+  安価なLLMによる自動校閲も試したが、実原稿での実測を経て品質保証としての限界を確認した。
 class: text-center
 layout: cover
 transition: slide-left
@@ -13,100 +13,162 @@ drawings:
   persist: false
 ---
 
-<div class="mx-auto max-w-4xl">
-  <div class="mb-8 text-slate-400 text-lg tracking-wide">個人制作のワークフローを紹介する技術LT</div>
-  <h1 class="text-5xl leading-tight font-bold">小説の原稿をCIで確かめ、<br>EPUBで読むまで</h1>
-  <div class="mt-9 text-2xl text-slate-300">Markdown / Pull Request / LLM / GitHub Actions</div>
-  <div class="mt-14 text-base text-slate-400">作業の自動化と、AI校閲の検証記録</div>
+<div class="mx-auto max-w-5xl">
+  <div class="mb-8 text-lg tracking-widest text-sky-300">個人制作 × GitHub Actions</div>
+  <h1 class="text-5xl leading-tight font-bold">小説を読んでいたら<br>CI/CDを構築していた</h1>
+  <div class="mt-10 text-2xl text-slate-300">Markdownを管理し、検査し、縦書きEPUBにして読む</div>
+  <div class="mt-14 text-base text-slate-400">Git / Pull Request / Python / EPUB / Google Drive</div>
 </div>
 
 <!--
-趣味でAIエージェントと小説を書いています。原稿だけでなく、今回のCI/CDのコードもAIにかなり生成させています。
-手で一から組み上げた苦労話ではなく、結果としてリポジトリに何が実装され、どこまで検証できているかを紹介します。
-ここでいう配信は読者向けの自動公開ではありません。制作中の原稿を個人用の端末で読むための同期です。
+趣味でAIエージェントも使いながら小説を制作しています。
+今日は小説の書き方や生成プロンプトではなく、原稿を管理し、確認し、自分の端末で読むまでの周辺作業を紹介します。
+CI/CDの実装コードもAIが生成したものを多く含みます。手作業でコードを書いた苦労話ではなく、出来上がった仕組みと検証結果の報告です。
 -->
 
 ---
 layout: default
 ---
 
-# 原稿をGitで管理している
+# 小説なのに、周辺作業がソフトウェア開発っぽい
+
+<div class="mt-10 grid grid-cols-3 gap-6">
+  <div class="rounded-2xl border border-slate-700 bg-slate-900/70 p-6">
+    <div class="text-sky-300 text-xl font-semibold">原稿を変える</div>
+    <div class="mt-5 text-lg leading-9 text-slate-200">改稿する<br>設定を更新する<br>別案と比較する</div>
+    <div class="mt-6 text-sm text-slate-400">差分・履歴が欲しい</div>
+  </div>
+  <div class="rounded-2xl border border-slate-700 bg-slate-900/70 p-6">
+    <div class="text-emerald-300 text-xl font-semibold">原稿を確かめる</div>
+    <div class="mt-5 text-lg leading-9 text-slate-200">記法を確認する<br>ビルドできるか調べる<br>読み直す</div>
+    <div class="mt-6 text-sm text-slate-400">毎回同じ作業がある</div>
+  </div>
+  <div class="rounded-2xl border border-slate-700 bg-slate-900/70 p-6">
+    <div class="text-violet-300 text-xl font-semibold">読む形にする</div>
+    <div class="mt-5 text-lg leading-9 text-slate-200">縦書きにする<br>EPUBを生成する<br>端末へ届ける</div>
+    <div class="mt-6 text-sm text-slate-400">原稿の更新に追従したい</div>
+  </div>
+</div>
+
+<div class="mt-10 rounded-xl border border-sky-500/35 bg-sky-950/25 px-6 py-4 text-xl">
+  このうち、繰り返せる処理を <span class="font-bold text-sky-300">GitHub Actions</span> に任せてみた。
+</div>
+
+<!--
+文章そのものとは別に、バージョン管理、規約チェック、閲覧用ファイルへの変換が必要になりました。
+小説に特別なCI/CDが必要だという話ではありません。自分が繰り返していた作業を見ると、一般的な開発のパイプラインに置き換えられそうだったということです。
+-->
+
+---
+layout: default
+---
+
+# 原稿・設定・ツールを、同じリポジトリへ
 
 <div class="grid grid-cols-5 gap-7 mt-9 items-start">
-  <div class="col-span-2 rounded-xl bg-slate-900/70 border border-slate-700 p-5 font-mono text-base leading-9">
-    <div class="text-sky-300">repo/</div>
-    <div>├─ novel/</div>
-    <div class="pl-5 text-slate-300">└─ proto2/</div>
+  <div class="col-span-2 rounded-xl bg-slate-900/75 border border-slate-700 p-5 font-mono text-base leading-9">
+    <div class="text-sky-300">ai-novel-alpha/</div>
+    <div>├─ novel/proto2/</div>
     <div>├─ CHARACTERS.md</div>
     <div>├─ docs/</div>
     <div>├─ AGENTS.md</div>
+    <div>├─ tools/kindle/</div>
     <div>└─ .github/workflows/</div>
   </div>
   <div class="col-span-3 space-y-5">
-    <div class="rounded-xl bg-slate-900/70 border border-slate-700 p-5">
-      <div class="text-xl font-semibold mb-2">制作の流れ</div>
-      <div class="text-lg text-slate-300 leading-8">人間が方向性を決める → AIが草稿を作る → PRで差分を確認 → 採用するものをマージ</div>
-      <div class="text-sm text-slate-400 mt-3">CI/CDの実装にもAI生成コードを多く使っている。</div>
+    <div class="rounded-xl border border-slate-700 bg-slate-900/70 p-6">
+      <div class="text-xl font-semibold mb-3">制作の単位が Pull Request</div>
+      <div class="text-lg leading-8 text-slate-300">原稿・設定・ツールの変更を差分として確認し、採用するものをマージする。</div>
     </div>
-    <div class="rounded-xl bg-slate-900/70 border border-slate-700 p-5">
-      <div class="text-xl font-semibold mb-2">確認したいこと</div>
-      <div class="text-lg text-slate-300 leading-8">書式は揃っているか。離れた章で事実が食い違わないか。スマホで通して読むとどう感じるか。</div>
+    <div class="rounded-xl border border-slate-700 bg-slate-900/70 p-6">
+      <div class="text-xl font-semibold mb-3">原稿と組版を分離</div>
+      <div class="text-lg leading-8 text-slate-300">Markdownは内容・見出し構造、PythonとCSSは表示・出版形式を担当する。</div>
     </div>
   </div>
 </div>
 
-<div class="mt-7 text-sm text-slate-400">小説の良し悪しをCIで判定することは目的にしていません。</div>
+<div class="mt-6 text-sm text-slate-400">ソース：リポジトリ README / docs/MANUSCRIPT_FORMAT.md</div>
 
 <!--
-本文や設定資料はMarkdownでGit管理しています。本文や周辺ツールにはAIが生成したものも含まれます。
-Git上では差分と変更履歴を確認できます。周辺の作業として、書式確認、物語の整合性確認、閲覧用ファイルへの変換があります。
-このリポジトリでは、それぞれ別の処理として組み込んでいます。
+本文、人物設定、執筆規約、EPUBを作るコード、CI/CDの定義までGit管理しています。
+AIに草稿やコードを書かせる場合も、Gitの差分で変更を確認できる点が便利です。
+ここでは改稿案が複数あっても、同時に同じ話の正史になるとは限りません。採用の判断は人間がします。
 -->
 
 ---
 layout: default
 ---
 
-# CIとCDを別の仕事として分ける
+# 気づけば、原稿のCI/CDになっていた
 
-<div class="mt-6 rounded-xl border border-slate-700 bg-slate-900/50 p-5">
-  <div class="rounded-lg bg-slate-800 py-3 text-center text-xl font-semibold">原稿の変更 → Pull Request</div>
+<div class="mt-7 rounded-2xl border border-slate-700 bg-slate-900/60 p-5">
+  <div class="rounded-lg bg-slate-800 px-6 py-3 text-center text-xl font-semibold">Markdown原稿を変更 → Pull Request / master</div>
   <div class="text-center my-3 text-2xl text-slate-500">↓</div>
   <div class="grid grid-cols-2 gap-5">
-    <div class="rounded-xl border border-emerald-500/40 p-5">
-      <div class="text-emerald-300 text-xl font-semibold mb-4">CI｜原稿を確認する</div>
-      <div class="rounded-lg bg-slate-800 px-4 py-3">Pythonで書式をLint</div>
-      <div class="text-center text-slate-500 text-lg my-2">＋</div>
-      <div class="rounded-lg bg-slate-800 px-4 py-3">LLMで整合性の候補を探す</div>
-      <div class="mt-4 text-sm text-slate-400">結果はPRコメントで確認。AIの指摘は参考情報。</div>
+    <div class="rounded-xl border border-emerald-500/40 bg-emerald-950/15 p-5">
+      <div class="text-emerald-300 text-xl font-bold mb-4">CI｜検査する</div>
+      <div class="rounded-lg bg-slate-800 p-4">Markdown Lint</div>
+      <div class="mt-3 rounded-lg bg-slate-800 p-4">ビルド・テスト・EPUB検証</div>
+      <div class="mt-5 text-sm text-slate-400">結果で作業の成否が分かる</div>
     </div>
-    <div class="rounded-xl border border-sky-500/40 p-5">
-      <div class="text-sky-300 text-xl font-semibold mb-4">CD｜読める形に届ける</div>
-      <div class="rounded-lg bg-slate-800 px-4 py-3">Markdown → 縦書きEPUB</div>
-      <div class="text-center text-slate-500 text-lg my-2">↓</div>
-      <div class="rounded-lg bg-slate-800 px-4 py-3">Google Driveへ同期</div>
-      <div class="mt-4 text-sm text-slate-400">PRとmasterで保存先を分ける。</div>
+    <div class="rounded-xl border border-sky-500/40 bg-sky-950/15 p-5">
+      <div class="text-sky-300 text-xl font-bold mb-4">CD｜読むために届ける</div>
+      <div class="rounded-lg bg-slate-800 p-4">縦書きEPUBを成果物にする</div>
+      <div class="mt-3 rounded-lg bg-slate-800 p-4">Google Driveへ同期する</div>
+      <div class="mt-5 text-sm text-slate-400">公開配信ではなく個人用プレビュー</div>
     </div>
   </div>
 </div>
 
-<div class="mt-5 text-sm text-slate-400">すべてが毎回動くわけではなく、変更ファイルとPRの状態で起動条件を分けています。</div>
+<div class="mt-5 text-base text-slate-300">意味の整合性を探すLLM校閲も実装したが、<span class="font-semibold text-amber-300">品質ゲートとは別扱い</span>にしている。</div>
 
 <!--
-CIは原稿の確認、CDは閲覧用ファイルの作成と同期、と役割を分けています。
-AI校閲は、修正を強制する品質ゲートではなく、PRに追加の観点を渡す仕組みです。
-Driveは公開サイトではなく、自分が原稿を読むための同期先です。以降、それぞれの処理を具体的に見ます。
+ここではCIをチェック、CDを閲覧用成果物の生成・同期という意味で使っています。
+Webサービスのデプロイではありません。自分で読むためのEPUBをGoogle Driveに送ります。
+LLM校閲も実装しましたが、書式チェックやビルドと同じ信頼性で成否を判定できるわけではありません。この話は後半にまとめます。
 -->
 
 ---
 layout: default
 ---
 
-# 形式のチェックはPythonで行う
+# 何を変更したかで、動く処理を分ける
 
-<div class="grid grid-cols-2 gap-8 mt-10">
+<div class="mt-9 grid grid-cols-3 gap-5">
+  <div class="rounded-2xl border border-emerald-500/35 bg-slate-900/70 p-5">
+    <div class="text-emerald-300 text-lg font-bold">原稿を変更</div>
+    <div class="mt-5 text-lg leading-8">書式を検査<br>対象原稿をEPUB化<br>PR用プレビューに同期</div>
+    <div class="mt-5 text-sm text-slate-400">原稿差分を対象にする</div>
+  </div>
+  <div class="rounded-2xl border border-sky-500/35 bg-slate-900/70 p-5">
+    <div class="text-sky-300 text-lg font-bold">ビルダーを変更</div>
+    <div class="mt-5 text-lg leading-8">Kindle用テスト<br>全原稿を再ビルド<br>組版への影響を確認</div>
+    <div class="mt-5 text-sm text-slate-400">CSSやテンプレートも入力</div>
+  </div>
+  <div class="rounded-2xl border border-violet-500/35 bg-slate-900/70 p-5">
+    <div class="text-violet-300 text-lg font-bold">masterを更新</div>
+    <div class="mt-5 text-lg leading-8">変更に応じてビルド<br>master用の保存先へ同期<br>PRプレビューと分離</div>
+    <div class="mt-5 text-sm text-slate-400">配信先もブランチで分ける</div>
+  </div>
+</div>
+
+<div class="mt-9 rounded-xl bg-slate-800/70 px-6 py-4 text-xl text-center">毎回すべてを実行せず、<span class="font-semibold text-white">変更の種類に応じた仕事だけ</span>を動かす。</div>
+
+<!--
+変更内容によって、必要な処理が違います。
+原稿だけが変わったときは対象となる原稿の処理を行い、ビルダー側の実装や表示資産が変わったら全原稿の再検証が必要です。
+PRのプレビューとmasterの成果物は、保存先を分けています。起動条件の具体的な実装はNovel CDのワークフローとbuild_inputs.pyにあります。
+-->
+
+---
+layout: default
+---
+
+# Markdownの書式は、Pythonで確実に調べる
+
+<div class="mt-10 grid grid-cols-2 gap-8">
   <div>
-    <div class="text-lg font-semibold text-emerald-300 mb-4">原稿側の約束</div>
+    <div class="text-lg font-semibold text-emerald-300 mb-4">原稿のルール</div>
     <div class="rounded-xl border border-slate-700 bg-slate-900/70 p-5">
       <pre class="!bg-transparent !m-0 text-lg leading-9"><code># 作品タイトル
 ## 章タイトル
@@ -114,285 +176,233 @@ layout: default
 
 本文……</code></pre>
     </div>
-    <div class="mt-5 text-base text-slate-300 leading-8">見出し階層、章番号の扱い、場面転換の記法などを検査する。</div>
+    <div class="mt-5 text-base text-slate-300 leading-8">見出しの順序・章番号・場面転換など、対応するMarkdownを限定する。</div>
   </div>
   <div>
-    <div class="text-lg font-semibold text-sky-300 mb-4">CIで実行する処理</div>
-    <div class="rounded-xl border border-slate-700 bg-slate-900/70 p-5 font-mono text-base">python tools/kindle/lint.py --all</div>
-    <div class="mt-6 text-lg leading-9 text-slate-300">形式上の規則は、同じ入力に同じ結果を返すスクリプトに任せる。</div>
-    <div class="mt-5 text-sm text-slate-400">LLMには、文脈を読まないと判断しにくい問題を担当させる。</div>
+    <div class="text-lg font-semibold text-sky-300 mb-4">実行するコマンド</div>
+    <div class="rounded-xl border border-slate-700 bg-slate-900/70 px-5 py-5 font-mono text-lg">python3 tools/kindle/lint.py --all</div>
+    <div class="mt-6 text-lg leading-9 text-slate-300">形式上の規則は、同じ入力に同じ結果を返すプログラムへ。</div>
+    <div class="mt-5 text-base text-slate-400">小説の内容に正解を求めるのとは、問題の性質が違う。</div>
   </div>
 </div>
 
 <!--
-EPUBへの変換を安定させるため、原稿側のMarkdownにルールを設けています。
-これは普通のLintとしてPythonで検査します。言語モデルを呼ぶ理由がない部分です。
-CI用のワークフローとは別に、EPUBビルドでもLintを実行しています。
+原稿は何でも書ける汎用Markdownではなく、ビルダーが対応したサブセットに限定しています。
+章番号は原稿に手書きせず、生成時に付けます。場面転換には独立行の記号を使います。
+こうしたルールは機械的にチェックできるので、LLMを使わない方が安定します。
 -->
 
 ---
 layout: default
 ---
 
-# LLM校閲は「部分を見る → 全体を照合する」
+# Markdownから、縦書きEPUBを生成する
 
-<div class="space-y-3 mt-8">
-  <div class="rounded-xl border border-slate-700 bg-slate-900/70 p-4 text-center">
-    <div class="font-semibold text-lg">1. 原稿を章・場面などの単位に分割</div>
-  </div>
-  <div class="text-center text-slate-500">↓</div>
-  <div class="grid grid-cols-3 gap-4">
-    <div class="rounded-xl border border-emerald-500/35 bg-emerald-950/25 p-4 text-center">チャンク A<br><span class="text-sm text-slate-300">文章の指摘＋事実抽出</span></div>
-    <div class="rounded-xl border border-emerald-500/35 bg-emerald-950/25 p-4 text-center">チャンク B<br><span class="text-sm text-slate-300">文章の指摘＋事実抽出</span></div>
-    <div class="rounded-xl border border-emerald-500/35 bg-emerald-950/25 p-4 text-center">チャンク C…<br><span class="text-sm text-slate-300">最大4並列で解析</span></div>
-  </div>
-  <div class="text-center text-slate-500">↓</div>
-  <div class="rounded-xl border border-slate-700 bg-slate-900/70 p-4 text-center">
-    <div class="font-semibold text-lg">2. 抽出した事実をまとめ、章をまたぐ矛盾候補を探す</div>
-    <div class="text-sm text-slate-400 mt-1">数量・時点・資料の版・人物の認識などを区別する</div>
-  </div>
-  <div class="text-center text-slate-500">↓</div>
-  <div class="rounded-xl border border-sky-500/35 bg-sky-950/25 p-4 text-center">
-    <div class="font-semibold text-lg">3. 候補があれば原文に戻って再検証し、PRに報告</div>
-  </div>
-</div>
-
-<div class="mt-5 text-sm text-slate-400">抽出した事実にも誤りがあり得るため、原文の引用を照合する処理を入れています。</div>
-
-<!--
-全文を一度に評価する代わりに、まず局所的な文章の問題と事実の索引をチャンクごとに得ます。
-次に索引を集約し、離れた章の間の矛盾候補を探します。候補が見つかった場合は原文に戻って再検証します。
-ここでいう「確定」はパイプライン内の判定であり、人間による確認を不要にする意味ではありません。
--->
-
----
-layout: default
----
-
-# 数字が違うだけでは、矛盾とは言えない
-
-<div class="grid grid-cols-2 gap-6 mt-10">
-  <div class="rounded-xl border border-amber-500/35 bg-slate-900/70 p-6">
-    <div class="text-amber-300 font-semibold mb-4 text-lg">見かけ上は食い違う</div>
-    <div class="text-3xl text-center font-bold my-6">17件 → 13件 → 0件</div>
-    <div class="text-slate-300 leading-8">章ごとに未処理の件数が変わっている。</div>
-  </div>
-  <div class="rounded-xl border border-emerald-500/35 bg-slate-900/70 p-6">
-    <div class="text-emerald-300 font-semibold mb-4 text-lg">文脈を加えると両立する</div>
-    <div class="text-xl text-center font-semibold my-6">調査が進んで、<br>残件数が減った</div>
-    <div class="text-slate-300 leading-8">同一時点の同一数量を述べているとは限らない。</div>
-  </div>
-</div>
-
-<div class="mt-9 rounded-xl bg-slate-900/60 border border-slate-700 px-6 py-4">
-  <div class="text-lg">LLMには、指摘する前に <span class="text-emerald-300 font-semibold">「矛盾ではない自然な読み方」</span> を探させる。</div>
-  <div class="mt-2 text-base text-slate-400">時間経過／全体と抜粋／提案と確定／人物ごとの認識差</div>
-</div>
-
-<!--
-この校閲器には、誤検出を抑えるための条件が入っています。
-件数が減っていても、時間が経過して処理が進んだだけかもしれません。人物の発言が違っていても、作中で意図された認識差かもしれません。
-そこでプロンプトでは、矛盾を報告する前に自然な別解釈を探すよう指定しています。この指定で誤検出がなくなるという意味ではありません。
--->
-
----
-layout: default
----
-
-# 評価ケースの条件にも曖昧さがあった
-
-<div class="grid grid-cols-2 gap-6 mt-8">
-  <div class="rounded-xl border border-slate-700 bg-slate-900/65 p-5">
-    <div class="text-lg font-semibold text-amber-300 mb-3">最初のケース（Run 3）</div>
-    <div class="text-lg leading-8">「冒頭から3ページ」<br>「作品は8ページ」</div>
-    <div class="mt-4 text-base text-slate-300">抜粋3ページと全体8ページなら矛盾しない。正解条件が曖昧だった。</div>
-  </div>
-  <div class="rounded-xl border border-slate-700 bg-slate-900/65 p-5">
-    <div class="text-lg font-semibold text-emerald-300 mb-3">修正したケース（Run 4）</div>
-    <div class="text-lg leading-8">「月曜時点の同じ最終稿は全編3ページ」<br>「同じ最終稿は全編8ページ」</div>
-    <div class="mt-4 text-base text-slate-300">対象・時点・版を固定し、両立しない条件を明示した。</div>
-  </div>
-</div>
-
-<div class="mt-8 text-lg text-slate-300">校閲器だけでなく、<span class="font-semibold text-white">「何を誤りとみなすか」</span> の定義も検証対象だった。</div>
-
-<div class="mt-5 text-xs text-slate-400">出典：tools/novel_ci/eval_results/pr97_run3_summary.json、pr97_run4_ground_truth.json</div>
-
-<!--
-評価用のRun 3では、章間のページ数の食い違いが検出されませんでした。
-ただし元のケースには「全体8ページのうち冒頭3ページ」という自然な読み方があり、検出漏れとは断定できません。
-Run 4では、同じ最終稿の全体ページ数が食い違うケースに変更しています。ここで変えたのは主に評価ケースの条件であり、この2回だけで検出性能の改善を示すことはできません。
--->
-
----
-layout: default
----
-
-# 小規模な検証では、期待どおりに動いた
-
-<div class="grid grid-cols-2 gap-6 mt-9">
-  <div class="rounded-xl border border-emerald-500/35 bg-slate-900/70 p-6 text-center">
-    <div class="text-emerald-300 text-lg font-semibold">意図的に仕込んだ誤り</div>
-    <div class="text-5xl font-bold my-5">3 / 3</div>
-    <div class="text-slate-300 text-base leading-8">文章破綻、同じ場面の矛盾、章をまたぐページ数の矛盾を検出</div>
-  </div>
-  <div class="rounded-xl border border-sky-500/35 bg-slate-900/70 p-6 text-center">
-    <div class="text-sky-300 text-lg font-semibold">矛盾ではない紛らわしい例</div>
-    <div class="text-5xl font-bold my-5">4 / 4</div>
-    <div class="text-slate-300 text-base leading-8">部分と全体、状態変化、認識差、知識の獲得順序を誤検出せず</div>
-  </div>
-</div>
-
-<div class="mt-7 rounded-xl border border-amber-500/25 bg-slate-900/60 px-5 py-4 text-base text-slate-300 leading-7">
-  <span class="text-amber-300 font-semibold">結果の範囲：</span> 同じ作品を加工した7ケース、各1回の実行。未知の作品に対する検出率や再実行時の安定性は、この数字では分からない。
-</div>
-
-<div class="mt-4 text-xs text-slate-400">出典：PR #97由来のRun 4 / Run 5評価ログ（tools/novel_ci/eval_results/）</div>
-
-<!--
-実モデルを呼ぶ小さな評価を作りました。誤りを仕込んだ3例と、誤りに見える正常な4例で、期待した結果が得られています。
-ただし、これは同じ原稿に手を加えた7ケースをそれぞれ1回動かした結果です。実世界の精度が100%という意味ではありません。
-ケースを増やすことや複数回試すことは、今後の課題です。
--->
-
----
-layout: default
----
-
-# 実際のPRでは、こういう報告になる
-
-<div class="mt-9 grid grid-cols-5 gap-6 items-start">
-  <div class="col-span-3 rounded-xl border border-slate-700 bg-slate-900/70 p-6">
-    <div class="text-base text-slate-400 mb-2">PR #97｜AI校閲コメントの一例</div>
-    <div class="text-xl font-semibold mb-4">発話者を特定しにくい箇所を指摘</div>
-    <div class="rounded-lg bg-slate-800/90 px-5 py-4 text-lg leading-8">「ひより、ここでいい？」</div>
-    <div class="mt-4 text-base text-slate-300 leading-7">前後の発話の話者が読み取りにくいとして、原稿中の行番号付きで報告。</div>
-  </div>
-  <div class="col-span-2 space-y-4">
-    <div class="rounded-xl border border-slate-700 bg-slate-900/70 p-5">
-      <div class="text-sm text-slate-400">2026-10-15の実行</div>
-      <div class="text-xl font-semibold mt-1">指摘 1 件</div>
-      <div class="text-sm text-slate-300 mt-2">9 API calls / 約 $0.0109</div>
+<div class="mt-8 rounded-2xl border border-slate-700 bg-slate-900/60 p-6">
+  <div class="grid grid-cols-3 gap-4 items-center text-center">
+    <div class="rounded-xl bg-slate-800 p-5">
+      <div class="text-sky-300 text-xl font-bold mb-2">Markdown</div>
+      <div class="text-base text-slate-300">作品タイトル・章・本文</div>
     </div>
-    <div class="rounded-xl border border-slate-700 bg-slate-900/70 p-5">
-      <div class="text-sm text-slate-400">2026-10-16の別コミットでの実行</div>
-      <div class="text-xl font-semibold mt-1">指摘 0 件</div>
-      <div class="text-sm text-slate-300 mt-2">10 API calls / 約 $0.0124</div>
+    <div class="rounded-xl bg-slate-800 p-5">
+      <div class="text-emerald-300 text-xl font-bold mb-2">Python＋組版処理</div>
+      <div class="text-base text-slate-300">HTML / CSS / Vivliostyle</div>
+    </div>
+    <div class="rounded-xl border border-sky-500/45 bg-sky-950/30 p-5">
+      <div class="text-sky-300 text-xl font-bold mb-2">EPUB</div>
+      <div class="text-base text-slate-300">縦書き・右開き</div>
+    </div>
+  </div>
+  <div class="mt-5 text-center text-slate-400 text-sm">原稿 → 構造化と組版 → 成果物の検証</div>
+</div>
+
+<div class="mt-7 grid grid-cols-2 gap-5">
+  <div class="rounded-xl border border-slate-700 bg-slate-900/70 px-5 py-4">
+    <div class="font-mono text-lg">task kindle -- novel/proto2/proto2-ep01.md</div>
+  </div>
+  <div class="rounded-xl border border-slate-700 bg-slate-900/70 px-5 py-4 text-base text-slate-300">
+    目次とリンク先・章番号・縦書き設定などをビルド時に検証
+  </div>
+</div>
+
+<div class="mt-6 text-sm text-slate-400">ソース：tools/kindle/README.md / docs/MANUSCRIPT_FORMAT.md</div>
+
+<!--
+EPUBの生成もPythonのツールで自動化しています。内部でVivliostyle CLIを利用する構成です。
+縦書き・右開きにし、章や節の目次を作り、章番号を本文と目次で一致させています。
+生成しただけで終わらず、パッケージの要素や目次のリンク先、縦書き指定も検証します。
+-->
+
+---
+layout: default
+---
+
+# 「小説を読む」ための細かい組版もコードにする
+
+<div class="mt-8 grid grid-cols-3 gap-5">
+  <div class="rounded-2xl border border-slate-700 bg-slate-900/70 p-5">
+    <div class="text-lg font-bold text-sky-300">章番号・目次</div>
+    <div class="mt-6 font-mono text-xl text-center">## 章タイトル</div>
+    <div class="my-5 text-center text-slate-500 text-2xl">↓</div>
+    <div class="text-lg text-center">第1章として表示<br>目次にも反映</div>
+  </div>
+  <div class="rounded-2xl border border-slate-700 bg-slate-900/70 p-5">
+    <div class="text-lg font-bold text-emerald-300">縦中横</div>
+    <div class="mt-6 font-mono text-xl text-center">A3判 / 12人</div>
+    <div class="my-5 text-center text-slate-500 text-2xl">↓</div>
+    <div class="text-lg text-center">短い英数字だけ<br>縦書きで正立</div>
+  </div>
+  <div class="rounded-2xl border border-slate-700 bg-slate-900/70 p-5">
+    <div class="text-lg font-bold text-violet-300">場面転換</div>
+    <div class="mt-6 font-mono text-xl text-center">---</div>
+    <div class="my-5 text-center text-slate-500 text-2xl">↓</div>
+    <div class="text-lg text-center">装飾と余白は<br>CSSに任せる</div>
+  </div>
+</div>
+
+<div class="mt-9 rounded-xl bg-slate-800/70 px-6 py-4 text-lg text-center">原稿を<span class="font-semibold text-white">表示の都合で書き換えない</span>。組版はビルダーの責務にする。</div>
+
+<!--
+たとえば英数字を縦書きで自然に見せるためだけに、原稿中のAや3を全角に変えることはしません。
+ビルダーが安全な短い組み合わせを縦中横として扱います。長い数字や略語は無理に一文字へ詰めません。
+場面転換も原稿は意味を示すだけにして、実際の装飾はCSSへ任せます。本文と表示を分ける利点が出ている部分です。
+-->
+
+---
+layout: default
+---
+
+# ビルドとDrive同期は、ジョブも権限も分ける
+
+<div class="mt-8 rounded-2xl border border-slate-700 bg-slate-900/60 p-6">
+  <div class="grid grid-cols-5 gap-4 items-center">
+    <div class="col-span-2 rounded-xl border border-emerald-500/40 bg-emerald-950/20 p-5">
+      <div class="text-xl text-emerald-300 font-semibold">Build ジョブ</div>
+      <div class="mt-4 text-lg leading-8">Lint / 必要なテスト<br>EPUBを生成・検証<br>Actions Artifactへ保存</div>
+      <div class="mt-3 text-sm text-slate-400">Driveの認証情報を使わない</div>
+    </div>
+    <div class="col-span-1 text-center text-4xl text-slate-500">→</div>
+    <div class="col-span-2 rounded-xl border border-sky-500/40 bg-sky-950/20 p-5">
+      <div class="text-xl text-sky-300 font-semibold">Deploy ジョブ</div>
+      <div class="mt-4 text-lg leading-8">Artifactを取得<br>保存先を判定<br>Google Driveへ同期</div>
+      <div class="mt-3 text-sm text-slate-400">外部サービスへの操作を分離</div>
     </div>
   </div>
 </div>
 
-<div class="mt-7 text-base text-slate-300">レビューは <span class="font-semibold text-white">人間に確認を促すコメント</span>。指摘があっても、それだけでマージを止めるものではない。</div>
-<div class="mt-4 text-xs text-slate-400">出典：PR #97 の校閲コメント。金額はトークン数からの概算。</div>
+<div class="mt-8 grid grid-cols-2 gap-5">
+  <div class="rounded-xl bg-slate-800/70 px-5 py-4">ビルド成功と同期成功を<span class="font-semibold text-white">別々に把握</span>できる</div>
+  <div class="rounded-xl bg-slate-800/70 px-5 py-4">同期で失敗しても、検証済みEPUBの結果を<span class="font-semibold text-white">残せる</span></div>
+</div>
 
 <!--
-評価用のケースだけでなく、通常のPRでもLLMレビューが動いています。
-これはPR #97で話者を特定しづらい箇所を指摘した例です。翌日の別コミットでは指摘ゼロのレポートが残っています。
-ここでは、どの修正が指摘の消失につながったかまでは断定しません。こうしたコメントを参考に、最終的には人間が原稿を読んで判断します。
+GitHub ActionsのBuild & Syncは、ビルドとデプロイを独立したジョブにしています。
+最初のジョブにはGoogle Driveの認証情報が不要です。検証したEPUBを短命なActions Artifactとして渡し、次のジョブで同期します。
+この分離はセキュリティ面だけでなく、何が失敗したかを区別できる点でも役立ちます。
 -->
 
 ---
 layout: default
 ---
 
-# LLMを呼ぶ回数は、意図的に絞る
+# PRではプレビュー、masterでは自分用の最新版
 
-<div class="grid grid-cols-2 gap-6 mt-8">
-  <div class="rounded-xl border border-slate-700 bg-slate-900/70 p-5">
-    <div class="text-lg text-emerald-300 font-semibold mb-4">いつ動かすか</div>
-    <div class="space-y-3 text-base leading-7">
-      <div><span class="font-semibold">Draft PR</span>：有料校閲は実行しない</div>
-      <div><span class="font-semibold">Ready PRの作成</span>：原稿変更があれば実行</div>
-      <div><span class="font-semibold">Ready PRへの追加push</span>：自動再校閲しない</div>
-      <div><span class="font-semibold">Draft → Ready</span>：明示的な再校閲として実行</div>
-    </div>
+<div class="mt-10 grid grid-cols-2 gap-7">
+  <div class="rounded-2xl border border-sky-500/40 bg-slate-900/70 p-6">
+    <div class="text-sky-300 text-xl font-bold">Pull Request</div>
+    <div class="mt-6 rounded-lg bg-slate-800 px-5 py-4 text-center text-lg">ブランチごとのプレビュー</div>
+    <div class="mt-5 text-lg leading-8 text-slate-300">別案を試しても、masterの成果物に上書きしない。</div>
+    <div class="mt-4 text-sm text-slate-400">PR終了などに応じて片付ける</div>
   </div>
-  <div class="rounded-xl border border-slate-700 bg-slate-900/70 p-5">
-    <div class="text-lg text-sky-300 font-semibold mb-4">どこで止めるか</div>
-    <div class="space-y-3 text-base leading-7">
-      <div><span class="font-semibold">1実行・PR全体：</span>35 calls、推定 $0.10まで</div>
-      <div><span class="font-semibold">キャッシュ：</span>原稿と校閲設定の指紋を比較</div>
-      <div><span class="font-semibold">権限：</span>AI解析ジョブとPRコメント投稿を分離</div>
-    </div>
+  <div class="rounded-2xl border border-emerald-500/40 bg-slate-900/70 p-6">
+    <div class="text-emerald-300 text-xl font-bold">master</div>
+    <div class="mt-6 rounded-lg bg-slate-800 px-5 py-4 text-center text-lg">master用のEPUB</div>
+    <div class="mt-5 text-lg leading-8 text-slate-300">採用した原稿を、普段読む保存先に同期する。</div>
+    <div class="mt-4 text-sm text-slate-400">未変更ファイルは再同期を避ける</div>
   </div>
 </div>
 
-<div class="mt-7 rounded-xl border border-amber-500/25 bg-slate-900/60 px-5 py-4 text-base text-slate-300 leading-7">
-  $0.10はクライアント側の<strong>推定費用</strong>の制御で、実際の請求額の保証ではない。また、Draft → Readyでの明示的な再実行はキャッシュを迂回する。
+<div class="mt-9 rounded-xl border border-slate-700 bg-slate-900/60 p-5 text-lg">
+  <span class="font-semibold text-white">CD = 公開</span> とは限らない。ここでは「自分が読むために、最新版を届ける」こと。
 </div>
 
 <!--
-有料のLLMをCIで使う場合、普通のLintのようにpushのたびに実行すると費用が増えます。
-そのためReadyへの遷移を明示的な合図として扱い、通常の追加pushではAI校閲を回しません。原稿とエンジンの設定が同じなら、通常の対象イベントでは過去の成功結果を参照してスキップできます。
-費用上限は推定値ベースで、請求額の絶対的な上限ではありません。APIキーを持つ解析ジョブにはPRへの書き込み権限を渡していません。
+私がここで配信と呼んでいるのは、出版サイトへの一般公開ではありません。
+PRの別案はプレビューとして保存し、masterの採用版とは混ぜません。
+変更のないEPUBを毎回アップロードしないように、同期の最適化や不要なプレビューの片付けも実装しています。
 -->
 
 ---
 layout: default
 ---
 
-# 原稿をEPUBにし、Driveで読み直す
+# ちなみに、AIによる内容校閲もCIに入れてみた
 
-<div class="mt-9 grid grid-cols-2 gap-7">
-  <div class="rounded-xl border border-slate-700 bg-slate-900/70 p-6">
-    <div class="text-xl text-sky-300 font-semibold mb-5">① Markdown → EPUB</div>
-    <div class="rounded-lg bg-slate-800 px-5 py-4 font-mono text-base leading-8"># 作品タイトル<br>## 章タイトル<br><br>本文……</div>
-    <div class="text-center text-2xl text-slate-500 my-4">↓</div>
-    <div class="rounded-lg border border-sky-500/30 bg-sky-950/30 px-5 py-4 text-center text-xl">縦書き・右開きのEPUB</div>
-    <div class="mt-4 text-sm text-slate-400">通常は変更された原稿をビルド。組版用の入力が変わった場合は全件を対象にする。</div>
+<div class="mt-8 grid grid-cols-3 gap-5 items-stretch">
+  <div class="rounded-2xl border border-slate-700 bg-slate-900/70 p-5">
+    <div class="text-lg font-semibold text-emerald-300">① 原稿を分割</div>
+    <div class="mt-5 text-lg leading-8">章・場面単位で<br>局所的な問題を探す<br>事実を抽出する</div>
   </div>
-  <div class="rounded-xl border border-slate-700 bg-slate-900/70 p-6">
-    <div class="text-xl text-emerald-300 font-semibold mb-5">② EPUB → Google Drive</div>
-    <div class="rounded-lg bg-slate-800 p-4">
-      <div class="font-semibold">PRの原稿</div>
-      <div class="text-sm text-slate-300 mt-1">ブランチごとのフォルダにプレビューを同期</div>
-    </div>
-    <div class="text-center text-slate-500 text-xl my-4">／</div>
-    <div class="rounded-lg bg-slate-800 p-4">
-      <div class="font-semibold">masterの原稿</div>
-      <div class="text-sm text-slate-300 mt-1">master用フォルダのEPUBを更新</div>
-    </div>
-    <div class="mt-4 text-sm text-slate-400">未変更のファイルは同期を省略。PR終了やブランチ削除に応じてプレビューを片付ける。</div>
+  <div class="rounded-2xl border border-slate-700 bg-slate-900/70 p-5">
+    <div class="text-lg font-semibold text-sky-300">② 全体を照合</div>
+    <div class="mt-5 text-lg leading-8">時間・人数・人物<br>条件や状態の推移を<br>章をまたいで確認</div>
+  </div>
+  <div class="rounded-2xl border border-slate-700 bg-slate-900/70 p-5">
+    <div class="text-lg font-semibold text-violet-300">③ 原文で再検証</div>
+    <div class="mt-5 text-lg leading-8">別解釈を検討し<br>疑義と引用を<br>PRコメントへ</div>
   </div>
 </div>
 
-<div class="mt-6 text-base text-slate-300">ここでいう「配信」は <span class="font-semibold text-white">制作中の原稿を自分の端末で読むための同期</span> です。</div>
+<div class="mt-9 rounded-xl border border-sky-500/30 bg-sky-950/25 px-6 py-5 text-xl text-center">
+  仮説：<span class="font-bold text-white">格安LLMでも、工夫すれば自動でかなり校閲できるのでは？</span>
+</div>
+
+<div class="mt-5 text-sm text-slate-400">実際にGPT-6 Lunaを用いる校閲ワークフローを実装・運用した。</div>
 
 <!--
-文章をMarkdownのまま読むよりも、縦書きのEPUBにすると読み味を確かめやすくなります。
-GitHub Actions上で変更された原稿をビルド・検証し、その生成物を別のジョブに渡してDriveに同期しています。
-PR用とmaster用の保存先を分けていますが、これはWebサービスの公開環境ではありません。あくまで自分で読むための成果物の管理です。
+内容の整合性も自動化してみたくなり、安価なLLMを組み込みました。
+まずチャンクごとに文章を調べて事実を抽出し、その索引を使って全体を照合し、疑義は原文で確認するという構成です。
+小さな加工テストでは期待どおりに動くこともありました。ただ、そこから実原稿の品質保証を言えるかどうかは別問題でした。
 -->
 
 ---
 layout: default
 ---
 
-# 自動化したこと、まだ人が判断すること
+# 約1セントのAI校閲。でも、見逃しは残った
 
-<div class="grid grid-cols-3 gap-5 mt-10">
-  <div class="rounded-xl border border-slate-700 bg-slate-900/70 p-5">
-    <div class="text-lg text-emerald-300 font-semibold mb-4">スクリプト</div>
-    <div class="text-lg leading-8">書式を検査する<br>EPUBを生成する<br>Driveへ同期する</div>
+<div class="mt-5 text-base text-slate-300">既存改善方式A：平均推計 <span class="font-semibold text-white">約 $0.0108 / 回</span>。実原稿3本を各3回検査。</div>
+
+<div class="mt-6 grid grid-cols-2 gap-5">
+  <div class="rounded-2xl border border-emerald-500/45 bg-emerald-950/20 p-5">
+    <div class="text-lg font-semibold text-emerald-300">検出できた疑義</div>
+    <div class="mt-3 text-5xl font-bold text-white">各 3/3</div>
+    <div class="mt-4 text-lg leading-8 text-slate-200">無線機の貸出条件<br>参加者名簿から消えた人物</div>
+    <div class="mt-2 text-sm text-slate-400">それぞれ3回とも最終報告に残った</div>
   </div>
-  <div class="rounded-xl border border-slate-700 bg-slate-900/70 p-5">
-    <div class="text-lg text-sky-300 font-semibold mb-4">LLM</div>
-    <div class="text-lg leading-8">文章の問題を探す<br>設定矛盾の候補を出す<br>原文と照合する</div>
-  </div>
-  <div class="rounded-xl border border-slate-700 bg-slate-900/70 p-5">
-    <div class="text-lg text-amber-300 font-semibold mb-4">人間</div>
-    <div class="text-lg leading-8">指摘の妥当性を読む<br>修正を選ぶ<br>物語として採用する</div>
+  <div class="rounded-2xl border border-amber-500/45 bg-amber-950/15 p-5">
+    <div class="text-lg font-semibold text-amber-300">見逃した問題候補</div>
+    <div class="mt-3 text-5xl font-bold text-white">0/3</div>
+    <div class="mt-4 text-lg leading-8 text-slate-200">「6人中4位」と<br>「二人差」という順位表現</div>
+    <div class="mt-2 text-sm text-slate-400">独立レビューでは疑義、Aは未指摘</div>
   </div>
 </div>
 
-<div class="mt-10 rounded-xl border border-slate-700 bg-slate-900/60 p-5">
-  <div class="text-lg leading-8">今の評価は小規模で、実運用でどれだけ見落としが減ったかも未測定。<br>その一方、<span class="text-white font-semibold">Lint・ビルド・閲覧用ファイルの同期</span> は、繰り返す手作業を減らす仕組みとして使っている。</div>
+<div class="mt-5 rounded-xl bg-slate-800/70 px-5 py-4 text-base text-slate-300 leading-7">
+  改良案も万能ではない。<span class="font-semibold text-white">意味正規化Bでは話者を誤認</span>し、<span class="font-semibold text-white">原文併用Cでは長文で不完全応答</span>が発生。
 </div>
+
+<div class="mt-5 text-center text-xl font-semibold text-white">安く問題を「発見」できても、<span class="text-amber-300">追加の校閲を省けるほどの保証にはならなかった。</span></div>
+<div class="mt-3 text-xs text-slate-400">3原稿×3方式×3反復＝27セル。独立レビューの問題候補には未裁定のものも含む。費用は実請求額ではなく推計。</div>
+<div class="mt-1 text-xs text-slate-400">出典：<a href="https://github.com/kamahir0/ai-novel-alpha/pull/123">実験 PR #123</a> ／ <a href="https://github.com/kamahir0/ai-novel-alpha/pull/124">評価記録 PR #124</a></div>
 
 <!--
-自動化したのは、定型的な形式検査とファイルの生成・同期、それから整合性確認の補助です。
-LLMが正しいと判定したから採用する、という構成にはしていません。
-小規模なテストでは期待した動作を確認できましたが、未知の作品での精度や、制作全体の品質改善を定量的に示せる段階ではありません。
+このスライドでは「正常完走した回数」より、そもそもの目的である検出の有用性を中心に紹介します。
+既存改善方式Aは、PR #116の無線機貸出条件とPR #118の参加者消失を、それぞれ3回中3回、最終報告に残しました。約1セントで問題を見つけられるのは良い点です。
+一方、PR #117の「6人中4位」に対する「二人差」という表現は、独立レビューで問題候補として挙がったものの、Aでは3回とも最終指摘になりませんでした。ただし独立レビューは確定正解ではなく、会話の文脈には別解釈の余地があります。ほかにも未指摘の候補があります。
+索引の欠落を補おうとした意味正規化方式Bでは、原文の話者を誤帰属させ、それが偽陽性につながりました。Bの正規化文と原文を併用するCでは、PR #118の2回で出力上限による不完全応答が発生しました。
+全条件では3原稿×3方式×3反復＝27セルを実行し、25セルが正常完走しています。ただし完走率は検出精度ではないため、スライド上では主役にしていません。Aの平均推計校閲費用は保存された9セル合計から算出した約$0.0108/回で、全ジョブの実請求額ではありません。
+私の運用では結局、高性能AIでの再確認と人による判断を省けません。よって「格安LLMを自動実行すれば品質保証を代替できる」という当初の期待には届かなかったと考えています。
 -->
 
 ---
@@ -401,20 +411,27 @@ class: text-center
 title: まとめ
 ---
 
-<div class="max-w-4xl mx-auto">
-  <div class="text-slate-400 tracking-wide mb-8 text-lg">まとめ</div>
-  <h1 class="text-4xl leading-tight font-bold">小説制作でも、<br>自動化できる作業はある</h1>
-  <div class="mt-11 space-y-4 text-xl text-slate-300">
-    <div>形式はPythonで確かめる</div>
-    <div>整合性はLLMに候補を出してもらう</div>
-    <div>読むためのEPUBはCIで作って同期する</div>
+<div class="max-w-5xl mx-auto">
+  <div class="text-sky-300 tracking-widest text-lg mb-8">まとめ</div>
+  <h1 class="text-4xl leading-tight font-bold">小説を読むために作ったCI/CD。<br>残す価値は、処理ごとに違った。</h1>
+  <div class="mt-11 grid grid-cols-2 gap-5 text-left">
+    <div class="rounded-2xl border border-emerald-500/40 bg-emerald-950/20 p-6">
+      <div class="text-xl font-bold text-emerald-300">続ける</div>
+      <div class="mt-4 text-lg leading-8">Markdown Lint<br>EPUBの生成・検証<br>Driveへの同期</div>
+    </div>
+    <div class="rounded-2xl border border-amber-500/40 bg-amber-950/15 p-6">
+      <div class="text-xl font-bold text-amber-300">運用を見直す</div>
+      <div class="mt-4 text-lg leading-8">安価なLLMによる自動校閲<br>指摘ゼロを品質保証とみなさない<br>必要なら強いAIと人間で確認</div>
+    </div>
   </div>
-  <div class="mt-12 text-lg text-slate-400">指摘をどう扱い、何を作品に残すかは、引き続き人間の仕事。</div>
-  <div class="mt-12 text-sm text-slate-500">ありがとうございました</div>
+  <div class="mt-10 text-xl font-semibold text-white">「自動化できる」と「自動化する価値がある」は、同じではなかった。</div>
+  <div class="mt-7 text-sm text-slate-400">※ AI校閲の停止は方針検討段階。発表資料作成時点では、本番ワークフローに実装が残っている。</div>
+  <div class="mt-7 text-base text-slate-500">ありがとうございました</div>
 </div>
 
 <!--
-このリポジトリでは、書式検査、EPUB生成、Driveへの同期をGitHub Actionsに組み込んでいます。
-AI校閲には7ケースの評価ログがありますが、未知の作品に対する精度は未測定です。
-本文も実装もAIを多用しており、ここで紹介したいのは作り手の苦労ではなく、現状の仕組みと確認できた動作です。以上です。
+小説の制作フローに開発用の道具を持ち込むと、書式チェックやEPUBの生成・同期は繰り返しの作業を減らせました。
+一方、AI校閲は安価に回せても、問題なしを信頼して追加の確認を省くところまでは到達していません。
+今回の発表で言いたかったのはAIがすごい・だめという話ではなく、どの処理を機械に任せると自分の作業が本当に楽になるか、という判断です。
+発表時点のリポジトリ状態が変わっていれば、AI校閲についての注記は事実に合わせて更新してください。
 -->
