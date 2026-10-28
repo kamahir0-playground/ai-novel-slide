@@ -1,6 +1,8 @@
 ---
 theme: default
 colorSchema: dark
+themeConfig:
+  primary: '#38bdf8'
 title: 小説を読んでいたらCI/CDを構築していた
 info: |
   AIで作った小説をKindleで読むことを出発点に、Markdownから縦書きEPUBを生成し、GitHub ActionsとGoogle Drive APIで管理・配信する個人用の「なんちゃってCI/CD」。
@@ -11,20 +13,19 @@ transition: slide-left
 mdc: true
 drawings:
   persist: false
+defaults:
+  background: /images/background.jpg
+  backgroundSize: cover
+  backgroundPosition: center
 ---
 
-<div class="mx-auto max-w-5xl">
-  <div class="mb-8 text-lg tracking-widest text-sky-300">個人制作の、なんちゃってCI/CD</div>
-  <h1 class="text-5xl leading-tight font-bold">小説を読んでいたら<br>CI/CDを構築していた</h1>
-  <div class="mt-10 text-2xl text-slate-300">Kindleで読みたい → EPUB → GitHub Actions → Google Drive</div>
-  <div class="mt-14 text-base text-slate-400">GitHub Actions / Python / EPUB / Google Drive API / AI</div>
-</div>
+<h1 class="text-5xl leading-tight font-bold">小説を読んでいたら<br>CI/CDを構築していた</h1>
 
 <!--
-AIで作った小説をKindleで読んでみたい、というところから始まった個人制作の話です。
-原稿を電子書籍に変換して、更新した版を自分で読める場所まで届ける。その周辺作業をGitHub Actionsに載せた結果、CI/CDに似た仕組みになりました。
-申請時の説明は「GitHub Actions、GCP Google Drive API、AIなどを活用したなんちゃってCI/CD」です。
-実装コードにもAI生成のものを多く使っています。手書きで作り上げた苦労話ではなく、実際の構成と運用の紹介です。
+- AI小説をKindleで読みたい → 個人制作の話
+- 原稿→EPUB→更新版を届ける作業をGitHub Actions化 → CI/CDに近い形
+- 申請説明: GitHub Actions / Google Drive API / AI の「なんちゃってCI/CD」
+- AI生成コード多め。構成と運用の紹介（苦労話ではない）
 -->
 
 ---
@@ -50,9 +51,10 @@ layout: default
 <div class="mt-10 text-center text-xl text-slate-300">小説を作る話ではなく、<span class="font-semibold text-white">原稿を読むまでの仕組み</span>の話です。</div>
 
 <!--
-最初の目的は、AIを使って制作した小説をKindle端末で読んでみることでした。
-そのために、原稿のMarkdownを電子書籍の形式に変換するところから仕組みが増えていきました。
-今の取り込み操作はスマホのGoogle DriveアプリとKindleアプリで行っています。Kindle端末を使いたいという出発点と、現在の取り込み経路は区別して説明します。
+- 目的: AI制作小説をKindleで読む
+- Markdown→電子書籍変換から仕組みが増えた
+- 取り込みはスマホのDriveアプリ + Kindleアプリ
+- 「Kindle端末で読みたい」出発点と、今の取り込み経路は別物として説明
 -->
 
 ---
@@ -82,10 +84,10 @@ layout: default
 <div class="mt-4 text-base text-slate-400">内部ではPython・HTML/CSS・Vivliostyle CLIを利用。生成後にEPUBの構成も検証する。</div>
 
 <!--
-原稿はMarkdownのサブセットとして管理しています。Pythonのビルダーが構造を解釈し、HTML/CSSやVivliostyle CLIを使って縦書き・右開きのEPUBを生成します。
-章番号を原稿へ直接書き込むのではなく、目次も含めて生成側で付けます。
-EPUBを出力するだけでなく、必要なファイル、目次リンク、縦書きの設定なども検証しています。
-ここまでは、読むためのファイルを作る処理です。
+- 原稿はMarkdownサブセット
+- Pythonビルダー + Vivliostyle CLI → 縦書き・右開きEPUB
+- 章番号・目次は生成側で付与
+- ファイル構成・目次リンク・縦書き設定も検証
 -->
 
 ---
@@ -113,10 +115,10 @@ layout: default
 </div>
 
 <!--
-EPUBを作ったあと、最初はKindleのライブラリまで自動で届けることも検討しました。
-調べたところ、ライブラリへの投入は一方向に自動化できます。しかし、自分が調べた連携方法では、不要になった版を同じように自動削除できませんでした。
-この話はKindle一般のあらゆる機能が不可能だという主張ではなく、今回の用途で利用できる自動化経路についての判断です。
-原稿の別案やPRごとのプレビューを扱うので、自動で配信する場所では後片付けまで管理できることを重視しました。
+- Kindleライブラリへの自動投入も検討
+- 投入は一方向自動化可 / 不要版の自動削除は今回の連携では不可
+- Kindle全機能の否定ではなく、使える経路での判断
+- 別案・PRプレビュー → 追加だけでなく整理・削除できる場所が必要
 -->
 
 ---
@@ -143,9 +145,9 @@ layout: default
 <div class="mt-5 text-center text-lg leading-snug text-slate-300">Google Driveは<span class="font-semibold text-white">閲覧用EPUBを置く場所</span>であり、Kindleへの自動配信ではない。</div>
 
 <!--
-そこで、自動配信の終点はGoogle Driveにしました。
-GitHub ActionsでEPUBを作り、Google Drive APIを通じて同期します。DriveならPRプレビューの置き分けや、不要な版の整理も実装できます。
-読むときはスマホのGoogle DriveアプリでEPUBを選び、Kindleアプリで開いてライブラリにインポートしています。この最後の操作は手動です。
+- 自動配信の終点 = Google Drive
+- ActionsでEPUB生成 → Drive APIで同期（PRプレビュー・整理も可）
+- 読む: Driveアプリ → Kindleアプリ → ライブラリ（手動）
 -->
 
 ---
@@ -178,9 +180,9 @@ layout: default
 </div>
 
 <!--
-原稿だけでなく、登場人物の設定、書式規約、EPUB生成コード、Drive同期コード、GitHub Actionsの定義も同じリポジトリにあります。
-本文やコードの生成にAIを使う場合も、Gitの差分で変更を確認できます。
-第2話などの別案を別PRで作ることもあります。どれを採用するかはCIが決めるのではなく、人間が決めます。
+- 原稿・設定・規約・ツール・workflow を同一リポジトリ
+- AI生成もGit差分で確認
+- 別案は別PR / 採用は人間が決める（CIではない）
 -->
 
 ---
@@ -207,9 +209,9 @@ layout: default
 <div class="mt-5 text-center text-lg leading-snug text-slate-300">一般公開する仕組みではなく、<span class="font-semibold text-white">自分が読むためのビルド＆配信</span>。</div>
 
 <!--
-開発用語で言えば、PRに対して検査・ビルドし、結果を配信する構成です。
-ただしWebサービスの本番デプロイではありません。自分で読むためのEPUBをGoogle Driveへ同期するだけなので、「なんちゃってCI/CD」と呼んでいます。
-Lintやビルドのように失敗を判定できる処理と、後で紹介する内容校閲のような曖昧な処理は区別しています。
+- PRで検査・ビルド・配信する構成
+- 本番デプロイではなく自分用EPUB同期 → 「なんちゃってCI/CD」
+- 機械判定（Lint等）と曖昧な処理（内容校閲）は区別
 -->
 
 ---
@@ -234,9 +236,9 @@ layout: default
 <div class="mt-10 border-l-4 border-emerald-400 pl-6 text-lg text-slate-200">小説の面白さは判定しない。<span class="font-semibold text-white">機械的に判定できる範囲だけ</span>を検査する。</div>
 
 <!--
-Markdownは自由な書式ではなく、このEPUBビルダーが対応する範囲に制限しています。
-見出しの階層や場面転換の記法などはPythonのLintで確認します。
-そのほか、必要なテストとEPUBのビルド・構成検証を行います。これは文芸的な評価ではなく、入力や成果物の技術的な検査です。
+- Markdownはビルダー対応範囲に制限
+- Python Lint（見出し・場面転換など）
+- テスト + EPUBビルド・構成検証（文芸評価ではない）
 -->
 
 ---
@@ -269,9 +271,9 @@ layout: default
 <div class="mt-10 text-center text-xl text-slate-200">原稿は内容を記述し、<span class="font-semibold text-white">表示の都合はビルダーが引き受ける</span>。</div>
 
 <!--
-例えば章番号を原稿に直接書かず、EPUBの生成時に採番します。
-短い英数字は縦中横として処理し、場面転換の区切りはCSSで見た目を付けます。
-原稿を電子書籍の表示都合に合わせて何度も書き換えなくてよいように、本文と組版を分離しています。
+- 章番号は生成時採番
+- 短い英数字 → 縦中横 / 場面転換 → CSS
+- 本文と組版を分離（原稿の書き換えを減らす）
 -->
 
 ---
@@ -298,9 +300,9 @@ layout: default
 <div class="mt-10 rounded-xl bg-slate-800/70 p-5 text-center text-xl">原稿を1つ変えるたびに、<span class="font-semibold text-white">全作品を再生成しない</span>。</div>
 
 <!--
-変更されたファイルによって再ビルドの範囲を変えています。
-原稿だけの変更なら対象ファイルを中心に、ビルダーの処理や表示に関わる資産が変わった場合は全原稿を再検証します。
-この判定はワークフローとbuild_inputs.pyなどのコードで処理しています。
+- 変更ファイルで再ビルド範囲を切り替え
+- 原稿のみ → 対象中心 / ビルダー・表示資産 → 全原稿
+- workflow + build_inputs.py で判定
 -->
 
 ---
@@ -332,10 +334,10 @@ layout: default
 </div>
 
 <!--
-PRごとに別案を試せるよう、プレビューの保存先とmasterの保存先を分けています。
-PRを閉じたときなどに不要なプレビューを削除し、master側では未変更の成果物を再同期しないようにしています。ここでKindleライブラリではなくDriveを選んだ理由が効いてきます。
-BuildジョブにはDriveの認証情報を渡さず、検証済みのEPUBをActions Artifactに保存してからDeployジョブへ渡します。
-ただし、このジョブ分離だけでセキュリティが全面的に保証されるわけではありません。ここでは担当と認証情報を分けている、という実装上の事実を紹介します。
+- PRプレビュー / master でDrive保存先を分離
+- PR終了時にプレビュー削除 / masterは未変更EPUBの再同期を避ける
+- Build → Artifact → Deploy（BuildにDrive認証なし）
+- ジョブ分離 = 担当・認証の分離（全面セキュリティ保証ではない）
 -->
 
 ---
@@ -360,12 +362,11 @@ layout: default
 <div class="mt-4 text-sm text-slate-400 text-center">参照：<a href="https://github.com/kamahir0/ai-novel-alpha/pull/123" class="underline">実験PR #123</a> / <a href="https://github.com/kamahir0/ai-novel-alpha/pull/124" class="underline">検証記録PR #124</a></div>
 
 <!--
-AIは小説の制作やCI/CDのコード生成にも使っています。ここで紹介するのは、それとは別に試した「AIによる内容校閲」です。
-安価なLLMを使い、原稿を分割して局所解析と全体照合を行い、矛盾の疑義をPRに出す仕組みを実装しました。
-実原稿3本を用いたA/B/Cの比較では合計27回のうち25回が正常完走しましたが、完走は検出性能の証明ではありません。指摘漏れがあり、意味正規化方式では話者の誤帰属、原文併用方式では出力上限による失敗も確認しました。
-評価に用いた独立レビューもAIによるもので、問題候補がすべて確定した誤りというわけではありません。
-意味正規化の新方式は採用を見送りました。さらに自動校閲CI全体も廃止する方向ですが、この資料の時点では本番ワークフローに実装が残っています。
-この発表の中心はAI校閲ではなく、読むためのCI/CDです。
+- 制作・コード生成AIとは別の「内容校閲」試行
+- 安価LLM / 分割解析 / 矛盾疑義をPRへ
+- 27試行中25完走（完走≠検出性能）/ 漏れ・話者誤帰属・出力上限
+- 評価もAI / 指摘は確定誤りではない
+- 自動校閲CIは廃止方向（workflowには残存）/ 本編は読むためのCI/CD
 -->
 
 ---
@@ -396,8 +397,8 @@ title: まとめ
 </div>
 
 <!--
-出発点は、AIで作った小説をKindleで読んでみたい、ということでした。
-MarkdownからEPUBを作り、GitHub Actionsで検査し、Google Driveへ届けるところまで自動化しています。Kindleアプリのライブラリへの取り込みは、今もスマホから手動で行っています。
-今回はKindle側の削除まで自動管理できなかったため、Driveを配信の終点にしました。
-小説制作にGitとCI/CDを持ち込んだ個人用の仕組みとして、現在はこんな形で動かしています。
+- 出発点: AI小説をKindleで読みたい
+- MD→EPUB→Actions検査→Driveまで自動 / Kindle取り込みは手動
+- Kindleで削除管理できない → Driveを終点に
+- 個人用 Git + CI/CD の現状
 -->
