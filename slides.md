@@ -467,33 +467,33 @@ layout: default
 layout: default
 ---
 
-# Draft PR と paths filter
+# EPUB ビルドは、必要な PR だけ
 
 <div class="mt-6 grid grid-cols-2 gap-6">
   <div class="rounded-2xl border border-violet-500/40 bg-slate-900/70 p-7">
     <div class="text-violet-300 text-xl font-bold">Draft PR</div>
     <div class="mt-5 text-lg leading-9 text-slate-300">
-      Draft の間は<br>
-      <span class="font-semibold text-white">Novel CD / Lint / AI 校閲</span>など重い workflow を走らせない
+      「まだ読む版にしたくない」ときは Draft のまま。<br>
+      その間は <span class="font-semibold text-white">EPUB 生成・Drive 同期・原稿 Lint</span> を動かさない。
     </div>
-    <div class="mt-4 text-base text-slate-400">Ready にしたタイミングで初めて（または再実行）。WIP の push で EPUB プレビューを量産しない。</div>
+    <div class="mt-4 text-base text-slate-400">Ready にしたタイミングで、プレビュー用 EPUB が初めて出る。</div>
   </div>
   <div class="rounded-2xl border border-sky-500/40 bg-slate-900/70 p-7">
-    <div class="text-sky-300 text-xl font-bold">paths filter</div>
-    <div class="mt-5 font-mono text-sm leading-8 text-slate-200">
-      novel/**/*.md<br>
-      tools/kindle/**（本番資産）<br>
-      …だけ Novel CD を起動
+    <div class="text-sky-300 text-xl font-bold">原稿まわりの変更だけ</div>
+    <div class="mt-5 text-lg leading-9 text-slate-300">
+      小説の Markdown や EPUB ビルダーを触った PR だけ、<br>
+      重い「ビルド＆Drive 同期」の Actions が起動する。
     </div>
-    <div class="mt-4 text-base text-slate-400">docs だけ・Drive コードだけの PR では、原稿ビルド＋Drive 同期を無駄に走らせない。</div>
+    <div class="mt-4 text-base text-slate-400">規約ドキュメントだけ直した PR などでは、EPUB パイプラインは走らせない。</div>
   </div>
 </div>
 
-<div class="mt-6 text-center text-base text-slate-400">同一リポジトリの fork PR には秘密情報を渡さない、など別 guard も workflow 側にあり。</div>
+<div class="mt-8 text-center text-lg text-slate-300">push のたびに毎回フルビルド、という運用を避けるための<span class="font-semibold text-white">起動条件</span>。</div>
 
 <!--
-.github/workflows/README.md の PR lifecycle 参照。drive-sync.yml は pull_request で draft==false かつ same-repo のときだけ Build/Deploy。
-paths は novel と tools/kindle（テスト/README 除く）等。Draft→Ready は PR 作成相当として AI 再実行（予算の都合で push では AI を走らせない、など細かい policy あり）。
+【話す】Actions は全部自動で走り続けるわけではない。Draft は「WIP のうちは Drive にプレビューを出したくない」ため。もう一つは「novel の原稿やビルダーが変わった PR だけ EPUB 用の workflow を起動する」設定。workflow 名や paths filter という用語は口にしなくてよい。
+
+【メモ】drive-sync.yml: pull_request + draft==false + same-repo。paths: novel/**/*.md, tools/kindle/** 等。詳細は .github/workflows/README.md。
 -->
 
 ---
