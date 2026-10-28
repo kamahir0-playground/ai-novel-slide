@@ -206,40 +206,62 @@ layout: default
 layout: default
 ---
 
-# 原稿もツールも、GitとPRで管理する
+# 小説専用 Markdown（汎用MDではない）
 
-<div class="mt-8 grid grid-cols-5 gap-8 items-start">
-  <div class="col-span-2 rounded-xl bg-slate-900/75 border border-slate-700 p-6 font-mono text-base leading-9">
-    <div class="text-sky-300 font-semibold">ai-novel-alpha/</div>
-    <div>├─ novel/proto2/</div>
-    <div>├─ CHARACTERS.md</div>
-    <div>├─ docs/</div>
-    <div>├─ tools/kindle/</div>
-    <div>├─ tools/drive/</div>
-    <div>└─ .github/workflows/</div>
-  </div>
-  <div class="col-span-3 space-y-5">
-    <div class="rounded-xl border border-slate-700 bg-slate-900/70 p-6">
-      <div class="text-xl font-semibold">改稿・別案は Pull Request</div>
-      <div class="mt-4 text-lg leading-8 text-slate-300">差分を見て採用する版を選ぶ。CI/CDはそのPRに紐づく。</div>
+<div class="mt-6 grid grid-cols-2 gap-6">
+  <div class="rounded-2xl border border-emerald-500/40 bg-slate-900/70 p-6">
+    <div class="text-emerald-300 text-xl font-bold">原稿に書くもの</div>
+    <div class="mt-5 text-lg leading-10 font-mono text-slate-200">
+      # / ## / ### 見出し<br>
+      本文・段落<br>
+      <span class="text-sky-300">---</span> 場面転換<br>
+      <span class="text-sky-300">*傍点*</span>　<span class="text-sky-300">&gt; 引用</span>
     </div>
-    <div class="rounded-xl border border-slate-700 bg-slate-900/70 p-6">
-      <div class="text-xl font-semibold">「読むためのコード」も同居</div>
-      <div class="mt-4 text-lg leading-8 text-slate-300">ビルド・Drive同期・workflow まで同一リポジトリ。</div>
+  </div>
+  <div class="rounded-2xl border border-amber-500/40 bg-slate-900/70 p-6">
+    <div class="text-amber-300 text-xl font-bold">Lint で弾くもの</div>
+    <div class="mt-5 text-lg leading-9 text-slate-300">
+      箇条書き・番号リスト<br>
+      リンク・画像・表<br>
+      コードブロック・生HTML<br>
+      場面転換の <span class="font-mono">＊＊＊</span> など
     </div>
   </div>
 </div>
 
+<div class="mt-6 text-center text-lg text-slate-300">README向けのMarkdownではなく、<span class="font-semibold text-white">EPUBに落とすための原稿言語</span>として規約化している（<span class="font-mono text-base">docs/MANUSCRIPT_FORMAT.md</span>）。</div>
+
 <!--
-- 小説テキストも、EPUBにするツールも、GitHub Actionsも同じリポジトリにある。別案を試すときはブランチとPRを切り、マージすれば master が採用版
-- AIにコードを書かせた部分も多いが、構成としては「個人用の mono-repo」に近い
+汎用Markdownの機能を削っているのは意図的。小説原稿に必要な構造と最小限の装飾だけに絞り、あとは tools/kindle/ のビルダーが章番号・縦中横・場面転換の見た目を引き受ける。
+lint.py は行単位で禁止構文を検出し、見出しレベルも標準形（H1/H2/H3）か legacy（H3/H4）かを判定する。CIでも同じ Lint を走らせる。
 -->
 
 ---
 layout: default
 ---
 
-# CI：原稿チェックとEPUB検証（いわゆる校正の自動化）
+# ディレクトリ
+
+<div class="mt-12 max-w-2xl mx-auto rounded-2xl border border-slate-700 bg-slate-900/75 p-8 font-mono text-lg leading-10 text-slate-200">
+  <div class="text-slate-400 mb-4">（private）</div>
+  <div>├─ <span class="text-sky-300">novel/</span> <span class="text-slate-400 font-sans text-base">… Markdown 原稿</span></div>
+  <div>├─ <span class="text-sky-300">docs/</span> <span class="text-slate-400 font-sans text-base">… 原稿規約など</span></div>
+  <div>├─ <span class="text-sky-300">tools/kindle/</span> <span class="text-slate-400 font-sans text-base">… EPUB ビルド</span></div>
+  <div>├─ <span class="text-sky-300">tools/drive/</span> <span class="text-slate-400 font-sans text-base">… Drive 同期</span></div>
+  <div>└─ <span class="text-sky-300">.github/workflows/</span> <span class="text-slate-400 font-sans text-base">… GitHub Actions</span></div>
+</div>
+
+<!--
+【話す】原稿も、EPUB にするツールも、Actions も同じリポジトリに入っている。細かいフォルダ名や作品名は出さなくてよい。
+
+【メモ】実体は ai-novel-alpha（private）。以降のスライドで触れるパスはこの構成の上に乗っている、程度で十分。
+-->
+
+---
+layout: default
+---
+
+# CI：原稿チェックとEPUB検証（校正の自動化）
 
 <div class="mt-9 grid grid-cols-2 gap-7">
   <div class="rounded-2xl border border-slate-700 bg-slate-900/70 p-7">
@@ -261,6 +283,33 @@ layout: default
 <!--
 - ここで言う校正に近いのは、原稿が規約どおりか、EPUBとして成立するか、という機械的なチェック。Lintは箇条書きや生HTMLなど、小説ビルダーが想定しないMarkdownを弾く
 - ビルド後は zip 内を検査し、縦書きCSSや目次のリンク先IDが揃っているかまで見る。文芸的な良し悪しは判定しない
+-->
+
+---
+layout: default
+---
+
+# fail-closed：壊れた EPUB は Drive に出さない
+
+<div class="mt-8 grid grid-cols-5 gap-5 items-center text-center">
+  <div class="col-span-2 rounded-2xl border border-emerald-500/40 bg-emerald-950/15 p-6 text-lg leading-10">
+    Lint 失敗<br>EPUB 生成失敗<br>zip 内検証失敗
+  </div>
+  <div class="col-span-1 text-4xl text-red-400">✕</div>
+  <div class="col-span-2 rounded-2xl border border-slate-700 bg-slate-900/70 p-6 text-lg leading-10 text-slate-400">
+    Deploy ジョブ<br>Drive API 同期
+  </div>
+</div>
+
+<div class="mt-8 rounded-xl border border-sky-500/35 bg-sky-950/20 p-6 text-lg leading-9 text-center">
+  <span class="font-semibold text-white">Build ジョブ</span>で <span class="font-mono">build_stage.py</span> が EPUB を生成・検証し、Artifact で渡す。<br>
+  検証を通ったものだけが同期対象。Drive アップロード失敗もチェックを<span class="font-semibold text-white">成功扱いにしない</span>。
+</div>
+
+<!--
+【話す】EPUB の生成と中身の検査が通らない限り、Google Drive への同期には進めない。ビルドが失敗したら、その後のデプロイの job 自体が起動しない。Drive へのアップロードが失敗したときも、ワークフロー全体を成功扱いにしない。
+
+【メモ】Build で build_stage.py が EPUB まで完結（Drive ライブラリ非依存）→ Artifact → Deploy のみ OAuth。needs: build。原稿削除だけの PR は別話（Deploy は走って Drive 上の EPUB を delete）。private repo・公開予定なし — 口頭ではファイルパスは省略可。
 -->
 
 ---
@@ -418,6 +467,68 @@ layout: default
 layout: default
 ---
 
+# Draft PR と paths filter
+
+<div class="mt-6 grid grid-cols-2 gap-6">
+  <div class="rounded-2xl border border-violet-500/40 bg-slate-900/70 p-7">
+    <div class="text-violet-300 text-xl font-bold">Draft PR</div>
+    <div class="mt-5 text-lg leading-9 text-slate-300">
+      Draft の間は<br>
+      <span class="font-semibold text-white">Novel CD / Lint / AI 校閲</span>など重い workflow を走らせない
+    </div>
+    <div class="mt-4 text-base text-slate-400">Ready にしたタイミングで初めて（または再実行）。WIP の push で EPUB プレビューを量産しない。</div>
+  </div>
+  <div class="rounded-2xl border border-sky-500/40 bg-slate-900/70 p-7">
+    <div class="text-sky-300 text-xl font-bold">paths filter</div>
+    <div class="mt-5 font-mono text-sm leading-8 text-slate-200">
+      novel/**/*.md<br>
+      tools/kindle/**（本番資産）<br>
+      …だけ Novel CD を起動
+    </div>
+    <div class="mt-4 text-base text-slate-400">docs だけ・Drive コードだけの PR では、原稿ビルド＋Drive 同期を無駄に走らせない。</div>
+  </div>
+</div>
+
+<div class="mt-6 text-center text-base text-slate-400">同一リポジトリの fork PR には秘密情報を渡さない、など別 guard も workflow 側にあり。</div>
+
+<!--
+.github/workflows/README.md の PR lifecycle 参照。drive-sync.yml は pull_request で draft==false かつ same-repo のときだけ Build/Deploy。
+paths は novel と tools/kindle（テスト/README 除く）等。Draft→Ready は PR 作成相当として AI 再実行（予算の都合で push では AI を走らせない、など細かい policy あり）。
+-->
+
+---
+layout: default
+---
+
+# 原稿を削除した PR も、Drive 上の EPUB を消す
+
+<div class="mt-8 rounded-2xl border border-slate-700 bg-slate-900/60 p-8">
+  <div class="grid grid-cols-5 gap-4 items-center text-center">
+    <div class="col-span-2 rounded-xl bg-slate-800 p-5 text-lg leading-9">
+      <span class="font-mono text-emerald-300">novel/…/*.md</span> を<br>git 上で削除だけ
+    </div>
+    <div class="col-span-1 text-3xl text-slate-500">→</div>
+    <div class="col-span-2 rounded-xl border border-amber-500/30 bg-amber-950/15 p-5 text-lg leading-9">
+      EPUB の<span class="font-semibold text-white">再ビルドは不要</span><br>
+      manifest は空でも<br>Drive reconcile で EPUB delete
+    </div>
+  </div>
+</div>
+
+<div class="mt-8 border-l-4 border-emerald-400 pl-6 text-lg leading-9 text-slate-200">
+  Kindle ライブラリ側は手動整理のまま。<span class="font-semibold text-white">Drive を配信の正</span>にしたからこそ、<br>
+  プレビュー環境から「消えた原稿」に対応する EPUB も API で片付けられる。
+</div>
+
+<!--
+build_stage.py は削除パスを diff から拾い、ビルド対象がなければ空 manifest でも Deploy へ。sync.py の reconcile が管理下の EPUB を Drive から delete する。
+「追加だけ自動・削除は Kindle 弱い」問題の補完として、Drive 終点を選んだ理由の具体例として話せる。
+-->
+
+---
+layout: default
+---
+
 # 変更内容に応じて、ビルド範囲を変える
 
 <div class="mt-10 grid grid-cols-3 gap-5">
@@ -438,7 +549,7 @@ layout: default
 <div class="mt-10 rounded-xl bg-slate-800/70 p-5 text-center text-xl">原稿1章直すたびに<span class="font-semibold text-white">全作品フルビルド</span>はしない。</div>
 
 <!--
-- 深掘り用。workflow の paths filter と build_inputs.py で、何が変わったかに応じて job の重さを変える。Drive 運用とセットで、コストと待ち時間を抑えている
+build_inputs.py が「本番 Kindle 資産」を定義。CSS や build.py 変更は全 novel 再ビルド。原稿だけの PR は base...HEAD / before..after の差分ファイル中心（前スライドの Draft・paths と組み合わせ）。
 -->
 
 ---
