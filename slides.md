@@ -125,22 +125,22 @@ layout: default
 
 # Google Driveまでを自動化する
 
-<div class="mt-8 grid grid-cols-5 gap-4 items-stretch text-center">
-  <div class="col-span-2 rounded-2xl border border-sky-500/40 bg-sky-950/20 p-7">
+<div class="mt-6 grid grid-cols-5 gap-4 items-stretch text-center">
+  <div class="col-span-2 rounded-2xl border border-sky-500/40 bg-sky-950/20 p-6">
     <div class="text-sky-300 text-lg font-bold">ここまで自動</div>
-    <div class="mt-6 text-xl leading-10">原稿の変更<br>↓<br>GitHub Actions<br>↓<br>EPUB生成・検証<br>↓<br>Google Drive</div>
+    <div class="mt-5 text-xl leading-9">原稿の変更<br>↓<br>GitHub Actions<br>↓<br>EPUB生成・検証<br>↓<br>Google Drive</div>
   </div>
   <div class="col-span-1 flex flex-col justify-center items-center">
     <div class="text-4xl text-slate-500">→</div>
-    <div class="mt-4 text-base text-amber-300 font-semibold">ここで区切る</div>
+    <div class="mt-3 text-base text-amber-300 font-semibold">ここで区切る</div>
   </div>
-  <div class="col-span-2 rounded-2xl border border-slate-700 bg-slate-900/70 p-7">
+  <div class="col-span-2 rounded-2xl border border-slate-700 bg-slate-900/70 p-6">
     <div class="text-slate-300 text-lg font-bold">ここから手動</div>
-    <div class="mt-6 text-xl leading-10">スマホのDriveアプリ<br>↓<br>EPUBをKindleアプリで開く<br>↓<br>ライブラリへインポート<br>↓<br>読む</div>
+    <div class="mt-5 text-xl leading-9">スマホのDriveアプリ<br>↓<br>EPUBをKindleアプリで開く<br>↓<br>ライブラリへインポート<br>↓<br>読む</div>
   </div>
 </div>
 
-<div class="mt-8 text-center text-lg text-slate-300">Google Driveは<span class="font-semibold text-white">閲覧用EPUBを置く場所</span>であり、Kindleへの自動配信ではない。</div>
+<div class="mt-5 text-center text-lg leading-snug text-slate-300">Google Driveは<span class="font-semibold text-white">閲覧用EPUBを置く場所</span>であり、Kindleへの自動配信ではない。</div>
 
 <!--
 そこで、自動配信の終点はGoogle Driveにしました。
@@ -189,22 +189,22 @@ layout: default
 
 # これが「なんちゃってCI/CD」の全体像
 
-<div class="mt-7 rounded-2xl border border-slate-700 bg-slate-900/60 p-6">
-  <div class="rounded-xl bg-slate-800 px-6 py-4 text-center text-xl font-semibold">Markdownを変更 → PR / master</div>
-  <div class="my-3 text-center text-3xl text-slate-500">↓</div>
-  <div class="grid grid-cols-2 gap-6">
-    <div class="rounded-xl border border-emerald-500/40 bg-emerald-950/15 p-6">
+<div class="mt-5 rounded-2xl border border-slate-700 bg-slate-900/60 p-5">
+  <div class="rounded-xl bg-slate-800 px-6 py-3 text-center text-xl font-semibold">Markdownを変更 → PR / master</div>
+  <div class="my-2 text-center text-3xl text-slate-500">↓</div>
+  <div class="grid grid-cols-2 gap-5">
+    <div class="rounded-xl border border-emerald-500/40 bg-emerald-950/15 p-5">
       <div class="text-emerald-300 text-2xl font-bold">CI｜確認する</div>
-      <div class="mt-5 text-lg leading-10">Markdown Lint<br>必要なテスト<br>EPUB生成・検証</div>
+      <div class="mt-4 text-lg leading-9">Markdown Lint<br>必要なテスト<br>EPUB生成・検証</div>
     </div>
-    <div class="rounded-xl border border-sky-500/40 bg-sky-950/15 p-6">
+    <div class="rounded-xl border border-sky-500/40 bg-sky-950/15 p-5">
       <div class="text-sky-300 text-2xl font-bold">CD｜届ける</div>
-      <div class="mt-5 text-lg leading-10">EPUBをArtifactとして受け渡し<br>Google Drive APIで同期<br>PR / masterで保存先を分離</div>
+      <div class="mt-4 text-lg leading-9">EPUBをArtifactとして受け渡し<br>Google Drive APIで同期<br>PR / masterで保存先を分離</div>
     </div>
   </div>
 </div>
 
-<div class="mt-7 text-center text-lg text-slate-300">一般公開する仕組みではなく、<span class="font-semibold text-white">自分が読むためのビルド＆配信</span>。</div>
+<div class="mt-5 text-center text-lg leading-snug text-slate-300">一般公開する仕組みではなく、<span class="font-semibold text-white">自分が読むためのビルド＆配信</span>。</div>
 
 <!--
 開発用語で言えば、PRに対して検査・ビルドし、結果を配信する構成です。
@@ -309,27 +309,27 @@ layout: default
 
 # CD：PRは試し読み、masterは普段用
 
-<div class="mt-7 grid grid-cols-2 gap-6">
-  <div class="rounded-2xl border border-sky-500/40 bg-slate-900/70 p-7">
+<div class="mt-5 grid grid-cols-2 gap-5">
+  <div class="rounded-2xl border border-sky-500/40 bg-slate-900/70 p-6">
     <div class="text-sky-300 text-xl font-bold">Pull Request</div>
-    <div class="mt-5 rounded-lg bg-slate-800 p-4 text-center text-xl">別案ごとのプレビュー</div>
-    <div class="mt-5 text-lg leading-9 text-slate-300">masterと混ぜずに同期。<br>PR終了時などに不要な置き場を片付ける。</div>
+    <div class="mt-4 rounded-lg bg-slate-800 p-3 text-center text-xl">別案ごとのプレビュー</div>
+    <div class="mt-4 text-lg leading-8 text-slate-300">masterと混ぜずに同期。<br>PR終了時などに不要な置き場を片付ける。</div>
   </div>
-  <div class="rounded-2xl border border-emerald-500/40 bg-slate-900/70 p-7">
+  <div class="rounded-2xl border border-emerald-500/40 bg-slate-900/70 p-6">
     <div class="text-emerald-300 text-xl font-bold">master</div>
-    <div class="mt-5 rounded-lg bg-slate-800 p-4 text-center text-xl">採用版の保存先</div>
-    <div class="mt-5 text-lg leading-9 text-slate-300">確定した原稿を同期。<br>未変更EPUBの再アップロードは避ける。</div>
+    <div class="mt-4 rounded-lg bg-slate-800 p-3 text-center text-xl">採用版の保存先</div>
+    <div class="mt-4 text-lg leading-8 text-slate-300">確定した原稿を同期。<br>未変更EPUBの再アップロードは避ける。</div>
   </div>
 </div>
 
-<div class="mt-7 rounded-xl border border-slate-700 bg-slate-900/60 p-6">
+<div class="mt-5 rounded-xl border border-slate-700 bg-slate-900/60 p-5">
   <div class="grid grid-cols-5 gap-4 items-center text-center">
     <div class="col-span-2"><span class="text-lg font-semibold text-emerald-300">Buildジョブ</span><div class="mt-2 text-base text-slate-300">EPUB生成・検証<br>Actions Artifactに保存</div></div>
     <div class="col-span-1 text-3xl text-slate-500">→</div>
     <div class="col-span-2"><span class="text-lg font-semibold text-sky-300">Deployジョブ</span><div class="mt-2 text-base text-slate-300">Artifactを取得<br>Drive APIで同期</div></div>
   </div>
+  <div class="mt-4 border-t border-slate-700 pt-3 text-center text-sm leading-snug text-slate-400">Drive認証情報はBuildジョブでは使わない。Buildと同期の成功・失敗も分けて把握する。</div>
 </div>
-<div class="mt-4 text-sm text-slate-400">Drive認証情報はBuildジョブでは使わない。Buildと同期の成功・失敗も分けて把握する。</div>
 
 <!--
 PRごとに別案を試せるよう、プレビューの保存先とmasterの保存先を分けています。
